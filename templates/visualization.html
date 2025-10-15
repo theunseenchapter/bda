@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Graph Visualization{% endblock %}
+
+{% block extra_css %}
+<style>
+    .node {
+        cursor: pointer;
+    }
+    
+    .node circle {
+        stroke: #fff;
+        stroke-width: 2px;
+    }
+    
+    .node text {
+        font-size: 12px;
+        font-weight: 600;
+        pointer-events: none;
+    }
+    
+    .link {
+        stroke: #999;
+        stroke-opacity: 0.6;
+        stroke-width: 2px;
+    }
+    
+    .legend {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 10px;
+        border: 2px solid #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="text-white mb-4">
+        <i class="fas fa-project-diagram"></i> Interactive Graph Visualization
+    </h1>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-network-wired"></i> Social Network Graph</span>
+                    <div>
+                        <button id="resetZoom" class="btn btn-sm btn-primary">
+                            <i class="fas fa-compress"></i> Reset Zoom
+                        </button>
+                        <button id="refreshGraph" class="btn btn-sm btn-success">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-10">
+                            <div id="graph-viz"></div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="legend">
+                                <h6 class="mb-3"><i class="fas fa-info-circle"></i> Legend</h6>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #2563eb;"></div>
+                                    <small>Highly Connected (5+)</small>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #10b981;"></div>
+                                    <small>Well Connected (3-4)</small>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #f59e0b;"></div>
+                                    <small>Moderately Connected (2)</small>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #ef4444;"></div>
+                                    <small>Lightly Connected (1)</small>
+                                </div>
+                                <hr>
+                                <div class="mt-3">
+                                    <small><strong>Interactions:</strong></small>
+                                    <ul class="small ps-3">
+                                        <li>Drag nodes to move</li>
+                                        <li>Scroll to zoom</li>
+                                        <li>Click node for details</li>
+                                        <li>Hover for name</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="nodeInfo" class="alert alert-info mt-3" style="display: none;">
+                        <h6><i class="fas fa-user"></i> <span id="selectedUser"></span></h6>
+                        <p class="mb-0">
+                            <strong>Connections:</strong> <span id="selectedConnections"></span> | 
+                            <a href="#" id="viewRecommendations" class="alert-link">View Recommendations</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Home -->
+    <div class="mt-4">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+        <a href="{{ url_for('analysis') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-chart-line"></i> Go to Analysis
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+    let svg, simulation, link, node, zoom;
+
+    function createGraph(data) {
+        // Clear existing graph
+        d3.select("#graph-viz").html("");
+
+        if (!data.nodes || data.nodes.length === 0) {
+            d3.select("#graph-viz").append("div")
+                .attr("class", "alert alert-warning text-center")
+                .style("margin", "50px")
+                .html('<i class="fas fa-exclamation-triangle"></i> No data to visualize. Please load data first.');
+            return;
+        }
+
+        const width = document.getElementById('graph-viz').offsetWidth;
+        const height = 600;
+
+        // Create SVG
+        svg = d3.select("#graph-viz")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Add zoom behavior
+        zoom = d3.zoom()
+            .scaleExtent([0.1, 10])
+            .on("zoom", (event) => {
+                container.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        const container = svg.append("g");
+
+        // Color scale based on connections
+        const colorScale = d3.scaleThreshold()
+            .domain([1, 2, 3, 5])
+            .range(['#ef4444', '#f59e0b', '#10b981', '#2563eb']);
+
+        // Create force simulation
+        simulation = d3.forceSimulation(data.nodes)
+            .force("link", d3.forceLink(data.links)
+                .id(d => d.id)
+                .distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(30));
+
+        // Create links
+        link = container.append("g")
+            .selectAll("line")
+            .data(data.links)
+            .enter()
+            .append("line")
+            .attr("class", "link");
+
+        // Create nodes
+        const nodeGroup = container.append("g")
+            .selectAll("g")
+            .data(data.nodes)
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended))
+            .on("click", nodeClicked);
+
+        nodeGroup.append("circle")
+            .attr("r", d => 5 + Math.sqrt(d.connections) * 3)
+            .attr("fill", d => colorScale(d.connections));
+
+        nodeGroup.append("text")
+            .attr("dx", 12)
+            .attr("dy", 4)
+            .text(d => d.id)
+            .style("fill", "#fff")
+            .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.8)");
+
+        // Add title for hover
+        nodeGroup.append("title")
+            .text(d => `${d.id}\nConnections: ${d.connections}`);
+
+        node = nodeGroup;
+
+        // Update positions on each tick
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+    }
+
+    // Drag functions
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+
+    // Node click handler
+    function nodeClicked(event, d) {
+        document.getElementById('selectedUser').textContent = d.id;
+        document.getElementById('selectedConnections').textContent = d.connections;
+        document.getElementById('viewRecommendations').href = `/recommendations/${d.id}`;
+        document.getElementById('nodeInfo').style.display = 'block';
+    }
+
+    // Reset zoom
+    document.getElementById('resetZoom').addEventListener('click', () => {
+        svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+    });
+
+    // Refresh graph
+    document.getElementById('refreshGraph').addEventListener('click', loadGraphData);
+
+    // Load graph data
+    function loadGraphData() {
+        fetch('/api/graph-data')
+            .then(response => response.json())
+            .then(data => {
+                createGraph(data);
+            })
+            .catch(error => {
+                console.error('Error loading graph data:', error);
+                d3.select("#graph-viz").html(
+                    '<div class="alert alert-danger">Error loading graph data. Please try again.</div>'
+                );
+            });
+    }
+
+    // Load on page load
+    window.addEventListener('load', loadGraphData);
+</script>
+{% endblock %}

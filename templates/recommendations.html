@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Recommendations for {{ username }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="text-white mb-4">
+                <i class="fas fa-user-plus"></i> Friend Recommendations for <strong>{{ username }}</strong>
+            </h1>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-lightbulb"></i> Recommended Friends
+                </div>
+                <div class="card-body">
+                    {% if recommendations and recommendations|length > 0 %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>How it works:</strong> These recommendations are based on mutual friends. 
+                            Users with more mutual connections appear higher on the list.
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Recommended Friend</th>
+                                        <th>Mutual Friends</th>
+                                        <th>Recommendation Strength</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rec in recommendations %}
+                                    <tr>
+                                        <td><strong class="text-primary">#{{ loop.index }}</strong></td>
+                                        <td>
+                                            <i class="fas fa-user-circle text-success"></i>
+                                            <strong>{{ rec.recommended_friend }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ rec.mutual_friends }} mutual friends</span>
+                                        </td>
+                                        <td>
+                                            {% if recommendations and recommendations|length > 0 %}
+                                                {% set max_mutual = recommendations[0].mutual_friends %}
+                                                {% if max_mutual > 0 %}
+                                                    {% set percentage = (rec.mutual_friends * 100 / max_mutual)|int %}
+                                                {% else %}
+                                                    {% set percentage = 0 %}
+                                                {% endif %}
+                                            {% else %}
+                                                {% set percentage = 100 %}
+                                            {% endif %}
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar bg-success" 
+                                                     role="progressbar" 
+                                                     style="width: {{ percentage }}%"
+                                                     aria-valuenow="{{ percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                    {{ percentage }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="alert alert-success mt-3">
+                            <i class="fas fa-check-circle"></i> 
+                            Found <strong>{{ recommendations|length }}</strong> friend recommendations for {{ username }}.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>No recommendations found.</strong><br>
+                            {{ username }} might already be connected to all possible friends, or there are no friends-of-friends available.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="mt-4">
+                <a href="{{ url_for('analysis') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Analysis
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

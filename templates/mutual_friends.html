@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Mutual Friends{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="text-white mb-4">
+                <i class="fas fa-users"></i> Mutual Friends
+            </h1>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-handshake"></i> Common Connections between {{ user1 }} and {{ user2 }}
+                </div>
+                <div class="card-body">
+                    {% if mutual_friends and mutual_friends|length > 0 %}
+                        <div class="alert alert-success mb-4">
+                            <i class="fas fa-check-circle"></i> 
+                            <strong>{{ user1 }}</strong> and <strong>{{ user2 }}</strong> have 
+                            <strong>{{ mutual_friends|length }}</strong> mutual friend(s).
+                        </div>
+
+                        <div class="row">
+                            {% for friend in mutual_friends %}
+                                <div class="col-md-3 col-sm-4 col-6 mb-3">
+                                    <div class="card text-center h-100">
+                                        <div class="card-body">
+                                            <i class="fas fa-user-circle fa-3x text-primary mb-2"></i>
+                                            <h6 class="card-title">{{ friend.mutual_friend }}</h6>
+                                            <a href="{{ url_for('recommendations', username=friend.mutual_friend) }}" 
+                                               class="btn btn-sm btn-outline-primary mt-2">
+                                                View Profile
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>No mutual friends found.</strong><br>
+                            {{ user1 }} and {{ user2 }} don't have any common connections.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="mt-4">
+                <a href="{{ url_for('analysis') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Analysis
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

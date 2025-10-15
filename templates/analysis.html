@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis - Friend Recommendation System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-white mb-4">
+        <i class="fas fa-chart-line"></i> Network Analysis
+    </h1>
+
+    <!-- Statistics Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <div class="stat-value">{{ stats.total_users if stats else 0 }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <i class="fas fa-link fa-2x mb-2"></i>
+                <div class="stat-value">{{ stats.total_connections if stats else 0 }}</div>
+                <div class="stat-label">Total Connections</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                <div class="stat-value">{{ stats.avg_connections if stats else 0 }}</div>
+                <div class="stat-label">Avg Connections</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Influencers Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-crown"></i> Top Influencers (Most Connected Users)
+                </div>
+                <div class="card-body">
+                    {% if influencers and influencers|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>User</th>
+                                        <th>Connections</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for influencer in influencers %}
+                                    <tr>
+                                        <td>
+                                            <strong class="text-primary">#{{ loop.index }}</strong>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-user-circle text-primary"></i>
+                                            <strong>{{ influencer.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">{{ influencer.connections }} connections</span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('recommendations', username=influencer.name) }}" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-search"></i> View Recommendations
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No data available. Please load data first.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Friend Recommendations Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user-plus"></i> Friend Recommendations by User
+                </div>
+                <div class="card-body">
+                    {% if users and users|length > 0 %}
+                        <p class="mb-3">Select a user to see their friend recommendations:</p>
+                        <div class="row">
+                            {% for user in users %}
+                                <div class="col-md-3 col-sm-4 col-6 mb-3">
+                                    <a href="{{ url_for('recommendations', username=user.name) }}" 
+                                       class="btn btn-outline-primary w-100">
+                                        <i class="fas fa-user"></i> {{ user.name }}
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No users found. Please load data first.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mutual Friends Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-users"></i> Find Mutual Friends
+                </div>
+                <div class="card-body">
+                    {% if users and users|length > 0 %}
+                        <form action="{{ url_for('mutual_friends') }}" method="POST">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <label class="form-label">First User</label>
+                                    <select name="user1" class="form-select" required>
+                                        <option value="">Select user...</option>
+                                        {% for user in users %}
+                                            <option value="{{ user.name }}">{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Second User</label>
+                                    <select name="user2" class="form-select" required>
+                                        <option value="">Select user...</option>
+                                        {% for user in users %}
+                                            <option value="{{ user.name }}">{{ user.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-search"></i> Find
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No users available. Please load data first.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Home -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}
